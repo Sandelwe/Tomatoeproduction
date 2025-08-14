@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Expansion Greenhouse Financial Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #030712; /* bg-gray-950 */
+            color: #f9fafb; /* text-gray-50 */
+        }
+        .card {
+            background-color: #111827; /* bg-gray-900 */
+            border-radius: 0.75rem; /* rounded-xl */
+            padding: 1.5rem; /* p-6 */
+            border: 1px solid #1f2937; /* border-gray-800 */
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .kpi-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(37 99 235 / 0.1), 0 4px 6px -4px rgb(37 99 235 / 0.1);
+        }
+        .slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #2563eb; /* bg-blue-600 */
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+        input[type='range']::-webkit-slider-thumb {
+            @apply slider-thumb;
+        }
+        input[type='range']::-moz-range-thumb {
+            @apply slider-thumb;
+        }
+        .chart-container {
+            position: relative;
+            height: 350px;
+            width: 100%;
+        }
+        .input-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+        }
+        .input-group label {
+            color: #d1d5db; /* text-gray-300 */
+            font-size: 0.875rem; /* text-sm */
+        }
+        .input-group input {
+            background-color: #374151; /* bg-gray-700 */
+            border: 1px solid #4b5563; /* border-gray-600 */
+            color: white;
+            border-radius: 0.375rem; /* rounded-md */
+            padding: 0.25rem 0.5rem;
+            width: 120px;
+            text-align: right;
+        }
+        .table-wrapper {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid #374151; /* border-gray-700 */
+            min-width: 120px;
+        }
+        th {
+            background-color: #1f2937; /* bg-gray-800 */
+            font-weight: 600;
+            color: #9ca3af; /* text-gray-400 */
+        }
+        td {
+            color: #d1d5db; /* text-gray-300 */
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        .font-semibold {
+            font-weight: 600;
+        }
+        .text-green-400 { color: #4ade80; }
+        .text-red-400 { color: #f87171; }
+    </style>
+</head>
+<body class="p-4 sm:p-6 lg:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">Dynamic Expansion Financial Model</h1>
+            <p class="mt-2 text-lg text-gray-400">A 10-year projection with performance-based expansion for your tomato venture.</p>
+        </header>
+
+        <!-- Main Dashboard -->
+        <main class="space-y-8">
+            <!-- Scenario Card -->
+            <section class="card bg-gray-800 border-blue-700">
+                 <h2 class="text-xl font-semibold text-white">Growth Scenario: Phased Expansion</h2>
+                 <p class="mt-2 text-gray-300">This model simulates a dynamic growth strategy:</p>
+                 <ul class="mt-2 text-sm text-gray-400 space-y-1 list-disc list-inside">
+                     <li>Starts with <strong>1</strong> greenhouse.</li>
+                     <li>When the total investment is paid back (cumulative cash flow > 0), a new greenhouse is added in the following year.</li>
+                     <li>Each new greenhouse is funded by a new <strong>5-year loan at 9% interest</strong>.</li>
+                     <li>This process repeats until a maximum of <strong>4</strong> greenhouses are operational.</li>
+                 </ul>
+            </section>
+
+            <!-- Key Metrics (KPIs) -->
+            <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="card kpi-card bg-green-900/50 border-green-700">
+                    <h3 class="text-sm font-medium text-green-300">Avg. Annual Net Profit (10 Yrs)</h3>
+                    <p class="mt-2 text-3xl font-semibold text-white" id="avgNetProfit">E 0</p>
+                </div>
+                <div class="card kpi-card bg-blue-900/50 border-blue-700">
+                    <h3 class="text-sm font-medium text-blue-300">Total 10-Year Net Profit</h3>
+                    <p class="mt-2 text-3xl font-semibold text-white" id="totalNetProfit">E 0</p>
+                </div>
+                <div class="card kpi-card bg-purple-900/50 border-purple-700">
+                    <h3 class="text-sm font-medium text-purple-300">Final Year IRR</h3>
+                    <p class="mt-2 text-3xl font-semibold text-white" id="irr">0%</p>
+                </div>
+                <div class="card kpi-card bg-yellow-900/50 border-yellow-700">
+                    <h3 class="text-sm font-medium text-yellow-300">Initial Payback Period</h3>
+                    <p class="mt-2 text-3xl font-semibold text-white" id="paybackPeriod">N/A</p>
+                </div>
+            </section>
+
+            <!-- Interactive Controls -->
+            <section class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                <!-- Production & Revenue Assumptions -->
+                <div class="card lg:col-span-1 space-y-6">
+                    <h2 class="text-xl font-semibold text-white">Production & Revenue</h2>
+                    <div class="input-group">
+                        <label for="plantsPerGreenhouse">Plants per Greenhouse</label>
+                        <input id="plantsPerGreenhouse" type="number" value="6000" class="model-input">
+                    </div>
+                    <div class="input-group">
+                        <label for="harvestsPerYear">Harvests per Year</label>
+                        <input id="harvestsPerYear" type="number" value="4" class="model-input">
+                    </div>
+                    <div>
+                        <label for="yieldSlider" class="block text-sm font-medium text-gray-300">Fruits per Plant (per harvest)</label>
+                        <div class="flex items-center gap-4 mt-2">
+                           <input id="yieldSlider" type="range" min="2" max="10" value="4" step="0.5" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer model-input">
+                           <span id="yieldValue" class="font-bold text-green-400 text-lg w-12 text-center">4</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="priceSlider" class="block text-sm font-medium text-gray-300">Avg. Price per Fruit (E)</label>
+                        <div class="flex items-center gap-4 mt-2">
+                            <input id="priceSlider" type="range" min="15" max="50" value="30" step="1" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer model-input">
+                            <span id="priceValue" class="font-bold text-blue-400 text-lg w-12 text-center">E 30</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Initial Investment (CAPEX) -->
+                <div class="card lg:col-span-1 space-y-3">
+                    <h2 class="text-xl font-semibold text-white">Investment (CAPEX)</h2>
+                     <div class="input-group">
+                        <label for="capexGreenhouse">Structure (per Greenhouse)</label>
+                        <input id="capexGreenhouse" type="number" value="750000" class="model-input">
+                    </div>
+                    <div class="input-group">
+                        <label for="capexIrrigation">Irrigation (per Greenhouse)</label>
+                        <input id="capexIrrigation" type="number" value="250000" class="model-input">
+                    </div>
+                    <div class="input-group">
+                        <label for="capexLand">Land Prep (Fixed)</label>
+                        <input id="capexLand" type="number" value="150000" class="model-input">
+                    </div>
+                    <div class="input-group">
+                        <label for="capexOther">Other (Fixed)</label>
+                        <input id="capexOther" type="number" value="150000" class="model-input">
+                    </div>
+                </div>
+
+                <!-- Operating Costs (OPEX) -->
+                <div class="card lg:col-span-1 space-y-3">
+                    <h2 class="text-xl font-semibold text-white">Annual OPEX (per Greenhouse)</h2>
+                    <div class="input-group">
+                        <label for="opexLabor">Labor</label>
+                        <input id="opexLabor" type="number" value="300000" class="model-input">
+                    </div>
+                    <div class="input-group">
+                        <label for="opexUtilities">Utilities</label>
+                        <input id="opexUtilities" type="number" value="120000" class="model-input">
+                    </div>
+                    <div class="input-group">
+                        <label for="opexConsumables">Consumables</label>
+                        <input id="opexConsumables" type="number" value="250000" class="model-input">
+                    </div>
+                    <div class="input-group">
+                        <label for="opexOther">Maintenance, etc.</label>
+                        <input id="opexOther" type="number" value="100000" class="model-input">
+                    </div>
+                </div>
+            </section>
+
+            <!-- Financial Projections Table -->
+            <section class="card">
+                <h2 class="text-xl font-semibold text-white mb-4">10-Year Financial Projections</h2>
+                <div class="table-wrapper">
+                    <table id="projectionsTable">
+                        <thead>
+                            <tr>
+                                <th>Metric</th>
+                                <th>Year 1</th>
+                                <th>Year 2</th>
+                                <th>Year 3</th>
+                                <th>Year 4</th>
+                                <th>Year 5</th>
+                                <th>Year 6</th>
+                                <th>Year 7</th>
+                                <th>Year 8</th>
+                                <th>Year 9</th>
+                                <th>Year 10</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Rows will be dynamically inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Charts -->
+            <section class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="card">
+                    <h2 class="text-xl font-semibold text-white mb-4">Revenue vs. Costs (10 Years)</h2>
+                    <div class="chart-container">
+                        <canvas id="revenueCostChart"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <h2 class="text-xl font-semibold text-white mb-4">Net Profit & Cumulative Cash Flow</h2>
+                    <div class="chart-container">
+                        <canvas id="profitCashflowChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        // --- DOM ELEMENTS ---
+        const elements = {
+            // KPIs
+            avgNetProfit: document.getElementById('avgNetProfit'),
+            totalNetProfit: document.getElementById('totalNetProfit'),
+            irr: document.getElementById('irr'),
+            paybackPeriod: document.getElementById('paybackPeriod'),
+            // Inputs
+            plantsPerGreenhouse: document.getElementById('plantsPerGreenhouse'),
+            harvestsPerYear: document.getElementById('harvestsPerYear'),
+            yieldSlider: document.getElementById('yieldSlider'),
+            yieldValue: document.getElementById('yieldValue'),
+            priceSlider: document.getElementById('priceSlider'),
+            priceValue: document.getElementById('priceValue'),
+            capexGreenhouse: document.getElementById('capexGreenhouse'),
+            capexIrrigation: document.getElementById('capexIrrigation'),
+            capexLand: document.getElementById('capexLand'),
+            capexOther: document.getElementById('capexOther'),
+            opexLabor: document.getElementById('opexLabor'),
+            opexUtilities: document.getElementById('opexUtilities'),
+            opexConsumables: document.getElementById('opexConsumables'),
+            opexOther: document.getElementById('opexOther'),
+            // Outputs
+            projectionsTable: document.getElementById('projectionsTable').getElementsByTagName('tbody')[0],
+        };
+
+        // --- CHART INSTANCES ---
+        let revenueCostChart, profitCashflowChart;
+
+        // --- UTILITY FUNCTIONS ---
+        const formatCurrency = (value, decimals = 0) => {
+            if (isNaN(value)) return `E 0`;
+            const sign = value < 0 ? "-" : "";
+            return `${sign}E ${Math.abs(value).toFixed(decimals).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+        };
+        
+        const PROJECTION_YEARS = 10;
+
+        // --- CORE CALCULATION LOGIC ---
+        function calculateFullModel() {
+            // 1. GATHER STATIC INPUTS
+            const inputs = {
+                plantsPerGreenhouse: parseFloat(elements.plantsPerGreenhouse.value) || 0,
+                harvestsPerYear: parseFloat(elements.harvestsPerYear.value) || 0,
+                fruitsPerPlant: parseFloat(elements.yieldSlider.value) || 0,
+                pricePerFruit: parseFloat(elements.priceSlider.value) || 0,
+                capexPerGreenhouse: (parseFloat(elements.capexGreenhouse.value) || 0) + (parseFloat(elements.capexIrrigation.value) || 0),
+                capexFixed: (parseFloat(elements.capexLand.value) || 0) + (parseFloat(elements.capexOther.value) || 0),
+                opexPerGreenhouse: (parseFloat(elements.opexLabor.value) || 0) + (parseFloat(elements.opexUtilities.value) || 0) + (parseFloat(elements.opexConsumables.value) || 0) + (parseFloat(elements.opexOther.value) || 0),
+                loanTermYears: 5,
+                interestRate: 0.09,
+                taxRate: 0.15,
+            };
+
+            // 2. INITIALIZE DYNAMIC STATE
+            let activeGreenhouses = 1;
+            const initialInvestment = inputs.capexFixed + inputs.capexPerGreenhouse;
+            let cumulativeCashFlow = -initialInvestment;
+            const cashFlowsForIRR = [-initialInvestment];
+            const loans = [];
+            const projections = [];
+            let expansionPlannedForNextYear = false;
+            let initialPaybackYear = -1;
+
+            // Add the first loan
+            loans.push({
+                principal: inputs.capexPerGreenhouse + inputs.capexFixed,
+                remainingPrincipal: inputs.capexPerGreenhouse + inputs.capexFixed,
+                startYear: 1,
+                term: 5
+            });
+
+            // 3. RUN 10-YEAR SIMULATION
+            for (let year = 1; year <= PROJECTION_YEARS; year++) {
+                // Check if an expansion happens this year
+                if (expansionPlannedForNextYear) {
+                    activeGreenhouses++;
+                    const newLoanAmount = inputs.capexPerGreenhouse;
+                    cumulativeCashFlow -= newLoanAmount; // Add new investment to cash flow
+                    cashFlowsForIRR[year - 1] -= newLoanAmount; // Adjust IRR cash flow for the investment
+                    loans.push({
+                        principal: newLoanAmount,
+                        remainingPrincipal: newLoanAmount,
+                        startYear: year,
+                        term: 5
+                    });
+                    expansionPlannedForNextYear = false;
+                }
+
+                const totalPlants = activeGreenhouses * inputs.plantsPerGreenhouse;
+                const grossRevenue = totalPlants * inputs.fruitsPerPlant * inputs.harvestsPerYear * inputs.pricePerFruit;
+                const totalAnnualOpex = activeGreenhouses * inputs.opexPerGreenhouse;
+
+                // Calculate loan payments for the current year
+                let totalAnnualInterest = 0;
+                loans.forEach(loan => {
+                    if (year >= loan.startYear && year < loan.startYear + loan.term && loan.remainingPrincipal > 0) {
+                        const r = inputs.interestRate / 12;
+                        const n = loan.term * 12;
+                        const monthlyPayment = loan.principal * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+                        
+                        let interestForYear = 0;
+                        for (let month = 1; month <= 12; month++) {
+                            const interestForMonth = loan.remainingPrincipal * r;
+                            interestForYear += interestForMonth;
+                            const principalForMonth = monthlyPayment - interestForMonth;
+                            loan.remainingPrincipal -= principalForMonth;
+                        }
+                        totalAnnualInterest += interestForYear;
+                    }
+                });
+                
+                const ebit = grossRevenue - totalAnnualOpex;
+                const taxes = Math.max(0, (ebit - totalAnnualInterest) * inputs.taxRate);
+                const netProfit = ebit - totalAnnualInterest - taxes;
+                
+                const freeCashFlow = ebit - taxes;
+                cumulativeCashFlow += freeCashFlow;
+                cashFlowsForIRR.push(freeCashFlow);
+
+                projections.push({
+                    year,
+                    activeGreenhouses,
+                    grossRevenue,
+                    totalAnnualOpex,
+                    ebit,
+                    totalAnnualInterest,
+                    taxes,
+                    netProfit,
+                    cumulativeCashFlow
+                });
+
+                // Check for breakeven trigger for next expansion
+                if (cumulativeCashFlow >= 0 && activeGreenhouses < 4 && !expansionPlannedForNextYear) {
+                    expansionPlannedForNextYear = true;
+                    if(initialPaybackYear === -1) {
+                       initialPaybackYear = year + (0 - (cumulativeCashFlow - freeCashFlow)) / freeCashFlow;
+                    }
+                }
+            }
+
+            // 4. FINAL KPI CALCULATIONS
+            const totalNetProfit = projections.reduce((sum, p) => sum + p.netProfit, 0);
+            const avgNetProfit = totalNetProfit / PROJECTION_YEARS;
+            const paybackText = initialPaybackYear > 0 ? `${initialPaybackYear.toFixed(1)} Years` : "N/A";
+
+            // IRR Calculation
+            let irr = 0.1;
+            for(let i=0; i < 30; i++) {
+                let npv = 0;
+                let dnpv = 0;
+                for(let t=0; t < cashFlowsForIRR.length; t++) {
+                    npv += cashFlowsForIRR[t] / Math.pow(1 + irr, t);
+                    dnpv -= t * cashFlowsForIRR[t] / Math.pow(1 + irr, t + 1);
+                }
+                if (Math.abs(dnpv) < 1e-6) break;
+                irr = irr - npv / dnpv;
+            }
+            const irrText = isFinite(irr) && !isNaN(irr) ? `${(irr * 100).toFixed(1)}%` : "N/A";
+            
+            return { projections, totalNetProfit, avgNetProfit, paybackText, irrText };
+        }
+
+        // --- UI UPDATE LOGIC ---
+        function updateUI() {
+            const model = calculateFullModel();
+
+            // Update KPIs
+            elements.avgNetProfit.textContent = formatCurrency(model.avgNetProfit);
+            elements.totalNetProfit.textContent = formatCurrency(model.totalNetProfit);
+            elements.paybackPeriod.textContent = model.paybackText;
+            elements.irr.textContent = model.irrText;
+
+            // Update slider displays
+            elements.yieldValue.textContent = elements.yieldSlider.value;
+            elements.priceValue.textContent = `E ${elements.priceSlider.value}`;
+
+            // Update Projections Table
+            elements.projectionsTable.innerHTML = '';
+            const metrics = [
+                { key: 'activeGreenhouses', label: '# Greenhouses', style: 'font-semibold' },
+                { key: 'grossRevenue', label: 'Gross Revenue', style: 'font-semibold text-green-400' },
+                { key: 'totalAnnualOpex', label: 'Operating Expenses', style: 'text-red-400' },
+                { key: 'ebit', label: 'Profit Before Interest/Tax', style: 'font-semibold' },
+                { key: 'totalAnnualInterest', label: 'Total Interest Paid', style: 'text-red-400' },
+                { key: 'taxes', label: 'Taxes (15%)', style: 'text-red-400' },
+                { key: 'netProfit', label: 'Net Profit', style: 'font-semibold text-blue-400 text-lg' },
+                { key: 'cumulativeCashFlow', label: 'Cumulative Cash Flow', style: 'font-semibold text-purple-400' }
+            ];
+
+            metrics.forEach(metric => {
+                const row = elements.projectionsTable.insertRow();
+                row.innerHTML = `<td class="${metric.style}">${metric.label}</td>` + 
+                    model.projections.map(p => `<td class="${metric.style}">${metric.key === 'activeGreenhouses' ? p[metric.key] : formatCurrency(p[metric.key])}</td>`).join('');
+            });
+            
+            updateCharts(model);
+        }
+
+        // --- CHART CREATION & UPDATE ---
+        function createCharts() {
+            const labels = Array.from({ length: PROJECTION_YEARS }, (_, i) => `Year ${i + 1}`);
+            const commonOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top', labels: { color: '#d1d5db' } },
+                    tooltip: { callbacks: { label: context => `${context.dataset.label}: ${formatCurrency(context.parsed.y)}` } }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        ticks: { color: '#9ca3af', callback: value => formatCurrency(value, 0).replace('E ','') },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    },
+                    x: { ticks: { color: '#9ca3af' }, grid: { display: false } }
+                }
+            };
+
+            revenueCostChart = new Chart(document.getElementById('revenueCostChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        { label: 'Gross Revenue', data: [], backgroundColor: 'rgba(34, 197, 94, 0.6)', borderColor: '#22c55e' },
+                        { label: 'Total Costs (OPEX + Interest)', data: [], backgroundColor: 'rgba(239, 68, 68, 0.6)', borderColor: '#ef4444' }
+                    ]
+                },
+                options: commonOptions
+            });
+
+            profitCashflowChart = new Chart(document.getElementById('profitCashflowChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        { label: 'Net Profit', data: [], backgroundColor: 'rgba(59, 130, 246, 0.6)', borderColor: '#3b82f6', yAxisID: 'y' },
+                        { label: 'Cumulative Cash Flow', data: [], borderColor: '#a855f7', borderWidth: 3, tension: 0.3, type: 'line', fill: false, yAxisID: 'y' }
+                    ]
+                },
+                options: commonOptions
+            });
+        }
+
+        function updateCharts(model) {
+            // Revenue vs Costs Chart
+            revenueCostChart.data.datasets[0].data = model.projections.map(p => p.grossRevenue);
+            revenueCostChart.data.datasets[1].data = model.projections.map(p => p.totalAnnualOpex + p.totalAnnualInterest);
+            revenueCostChart.update();
+
+            // Profit & Cash Flow Chart
+            profitCashflowChart.data.datasets[0].data = model.projections.map(p => p.netProfit);
+            profitCashflowChart.data.datasets[1].data = model.projections.map(p => p.cumulativeCashFlow);
+            profitCashflowChart.update();
+        }
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            createCharts();
+            updateUI();
+
+            document.querySelectorAll('.model-input').forEach(input => {
+                input.addEventListener('input', updateUI);
+            });
+        });
+    </script>
+</body>
+</html>
